@@ -3,6 +3,5 @@ name "dbarsd"
 authors "Orfeo Da Vià"
 copyright "Copyright © 2023, Microline"
 license "Microline"
-sourceFiles "postgres.d"
 
 targetType "library"
