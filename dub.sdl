@@ -5,3 +5,5 @@ copyright "Copyright © 2023, Microline"
 license "Microline"
 
 targetType "library"
+
+libs "pq"

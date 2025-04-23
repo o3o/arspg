@@ -452,5 +452,85 @@ extern (C) {
    int PQgetisnull(const PGresult* res, int row_number, int column_number);
 
    char* PQcmdTuples(PGresult* res);
+}
 
+private template commonType(T) {
+   enum commonType = (is(T == bool) || is(T == float) || is(T == double) || is(T == short) || is(T == int)
+            || is(T == long) || is(T == uint) || is(T == ulong) || is(T == string));
+}
+
+/**
+ * Convert a string into T type.
+ */
+T conv(T)(string input) @safe pure if (commonType!T) {
+   import std.conv : parse, to;
+   import std.string : isNumeric;
+
+   static if (is(T == double) || (is(T == float))) {
+      if (input.isNumeric) {
+         return input.parse!(T);
+      } else {
+         return input == "true" || input == "t" ? 1. : 0.;
+      }
+   } else static if ((is(T == int)) || (is(T == long)) || (is(T == uint)) || (is(T == ulong))) {
+      if (input.isNumeric) {
+         return input.parse!(T);
+      } else {
+         return input == "true" || input == "t" ? 1 : 0;
+      }
+   } else static if (is(T == bool)) {
+      if (input.isNumeric) {
+         return input.parse!(double) != 0.;
+      } else {
+         return input == "true" || input == "t";
+      }
+   } else static if (is(T == string)) {
+      return input;
+   } else {
+      assert(false);
+   }
+}
+SysTime convToTime(string input) @safe {
+   return SysTime.fromISOExtString(input.replace(" ", "T"));
+}
+
+@safe pure unittest {
+   assert(conv!double("12") == 12.0);
+   assert(conv!double("12.5") == 12.5);
+   assert(conv!double("12.9") == 12.9);
+   assert(conv!double("a") == 0.);
+   assert(conv!double(null) == 0.);
+   assert(conv!double("true") == 1.);
+   assert(conv!double("t") == 1.);
+   assert(conv!double("false") == 0.);
+   assert(conv!double("") == 0.);
+}
+@safe pure unittest {
+   assert(conv!int("12") == 12);
+   assert(conv!int("12.5") == 12);
+   assert(conv!int("12.9") == 12);
+   assert(conv!int("a") == 0);
+   assert(conv!int(null) == 0);
+   assert(conv!int("true") == 1.);
+   assert(conv!int("t") == 1.);
+   assert(conv!int("false") == 0.);
+   assert(conv!int("") == 0);
+}
+@safe pure unittest {
+   assert(!conv!bool("0"));
+   assert(!conv!bool("0.0"));
+   assert(conv!bool("12"));
+   assert(conv!bool("12.5"));
+   assert(conv!bool("12.9"));
+   assert(!conv!bool("a"));
+   assert(!conv!bool(null));
+   assert(conv!bool("true"));
+   assert(conv!bool("t"));
+   assert(!conv!bool("false"));
+   assert(!conv!bool(""));
+}
+
+unittest {
+   auto expected = SysTime(DateTime(2025, 4, 23, 8, 9, 16), dur!"usecs"(923633));
+   assert(convToTime("2025-04-23 08:09:16.923633") == expected);
 }
